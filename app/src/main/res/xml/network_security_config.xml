@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    网络安全配置
+    只对已知的音乐 CDN / API 域名开放 HTTP 明文，其余流量强制 HTTPS。
+    替代 AndroidManifest 中的全局 usesCleartextTraffic="true"。
+-->
+<network-security-config>
+
+    <!-- 默认：所有域名只允许 HTTPS（Android 9+ 默认行为，此处显式声明） -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!--
+        已知需要 HTTP 的音乐 CDN 域名白名单。
+        音频流 URL 由第三方 API 下发，部分来源仍使用 HTTP。
+        如果 API 侧将 URL 全面升级为 HTTPS，可删除对应条目。
+    -->
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- 网易云音乐 CDN -->
+        <domain includeSubdomains="true">music.126.net</domain>
+        <domain includeSubdomains="true">m10.music.126.net</domain>
+        <!-- QQ 音乐 CDN -->
+        <domain includeSubdomains="true">dl.stream.qqmusic.qq.com</domain>
+        <domain includeSubdomains="true">isure.stream.qqmusic.qq.com</domain>
+        <!-- 酷狗音乐 CDN -->
+        <domain includeSubdomains="true">fs.file.kugou.com</domain>
+        <!-- 酷我音乐 CDN -->
+        <domain includeSubdomains="true">sq.sycdn.kuwo.cn</domain>
+        <!-- 咪咕音乐 CDN -->
+        <domain includeSubdomains="true">freetyst.nf.migu.cn</domain>
+        <!-- B 站音频 CDN -->
+        <domain includeSubdomains="true">upos-sz-mirror08c.bilivideo.com</domain>
+        <!--
+            如发现新的 HTTP CDN 域名（logcat 报 CLEARTEXT_NOT_PERMITTED），
+            在此处追加 <domain> 条目即可，无需改动其他代码。
+        -->
+    </domain-config>
+
+</network-security-config>

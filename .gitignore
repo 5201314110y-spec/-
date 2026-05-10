@@ -1,0 +1,45 @@
+# Gradle
+.gradle/
+build/
+**/build/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# Android
+*.apk
+*.aab
+*.ap_
+*.dex
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# IDE - Android Studio / IntelliJ
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Eclipse
+.project
+.classpath
+.settings/
+bin/
+gen/
+
+# VS Code
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Keystore (do not commit signing keys)
+*.jks
+*.keystore
+keystore.properties
+
+# Logs
+*.log
