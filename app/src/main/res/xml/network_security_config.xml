@@ -31,8 +31,12 @@
         <domain includeSubdomains="true">sq.sycdn.kuwo.cn</domain>
         <!-- 咪咕音乐 CDN -->
         <domain includeSubdomains="true">freetyst.nf.migu.cn</domain>
-        <!-- B 站音频 CDN -->
-        <domain includeSubdomains="true">upos-sz-mirror08c.bilivideo.com</domain>
+        <!-- 千千音乐 CDN -->
+        <domain includeSubdomains="true">qianqian.taihe.com</domain>
+        <domain includeSubdomains="true">qianqian.com</domain>
+        <!-- 汽水音乐 CDN（字节跳动） -->
+        <domain includeSubdomains="true">douyinvod.com</domain>
+        <domain includeSubdomains="true">bytedance.com</domain>
         <!--
             如发现新的 HTTP CDN 域名（logcat 报 CLEARTEXT_NOT_PERMITTED），
             在此处追加 <domain> 条目即可，无需改动其他代码。
