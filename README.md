@@ -53,10 +53,13 @@ gradle assembleDebug
 
 本仓库已内置 GitHub Actions 工作流 `.github/workflows/build.yml`：
 
-- 任意分支 push / PR / 手动触发 → 自动编译 Debug APK，作为 Actions artifact 下载
+- 任意分支 push / PR → 自动编译 Debug APK，作为 Actions artifact 下载
 - 推送 `v*` tag（如 `v1.0.0`）→ 自动编译并创建 GitHub Release，附带 APK
+- **手动触发（推荐）**：在 GitHub 仓库 → Actions → `Build APK` → `Run workflow`，
+  在 `release_version` 中填写版本号（如 `v1.0.0`），workflow 会自动创建 tag
+  并发布 Release；留空则仅生成 artifact。
 
-发布新版本：
+命令行发布（需有 push 权限）：
 
 ```bash
 git tag v1.0.0
