@@ -198,6 +198,19 @@ body {
   margin-left: 8px; vertical-align: middle;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Toast 提示（替代 alert，避免 WebView "file://" 弹窗 */
+.toast {
+  position: fixed; left: 50%; bottom: 240px;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(30,30,30,0.96); color: #fff;
+  padding: 12px 22px; border-radius: 24px;
+  font-size: 14px; max-width: 80%; text-align: center;
+  z-index: 200; opacity: 0; pointer-events: none;
+  transition: opacity .25s, transform .25s;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 </style>
 </head>
 <body>
@@ -303,7 +316,7 @@ async function doSearch() {
   if (!q) return;
 
   var sources = getSelectedSources();
-  if (sources.length === 0) { alert("请至少选择一个搜索源"); return; }
+  if (sources.length === 0) { showToast("请至少选择一个搜索源"); return; }
 
   var listEl = document.getElementById("songList");
   listEl.innerHTML = '<div class="loading">搜索中</div>';
@@ -360,16 +373,25 @@ function renderList(songs) {
 }
 
 // --- 播放 ---
-async function playSong(index) {
-  if (index < 0 || index >= playlist.length) return;
-  currentIndex = index;
+// 自动跳过链限制：连续失败超过此数后停止，避免无限递归。
+var MAX_AUTO_SKIP = 5;
+
+async function _playSongInner(index, depth) {
+  if (index < 0 || index >= playlist.length) return false;
+  if (depth > MAX_AUTO_SKIP) {
+    showToast("连续多首无法播放，已停止");
+    return false;
+  }
+
   var song = playlist[index];
 
-  document.getElementById("nowName").textContent = song.name;
-  document.getElementById("nowArtist").textContent = song.artist;
-  if (song.cover) document.getElementById("nowCover").src = song.cover;
-
-  renderList(playlist);
+  // 加载提示（不修改 currentIndex/高亮，避免失败后留下错误的"正在播放"标记）
+  var nameEl = document.getElementById("nowName");
+  var artistEl = document.getElementById("nowArtist");
+  var prevName = nameEl.textContent;
+  var prevArtist = artistEl.textContent;
+  nameEl.textContent = "加载中…";
+  artistEl.textContent = song.name + " · " + song.artist;
 
   var params = new URLSearchParams({ id: song.id, source: song.source, duration: String(song.duration || 0) });
   if (song.extra && typeof song.extra === "object") {
@@ -378,20 +400,44 @@ async function playSong(index) {
     params.set("extra", song.extra);
   }
 
+  var data = null, fetchErr = false;
   try {
     var resp = await fetch(API_BASE + "/inspect?" + params, { headers: HEADERS });
-    var data = await resp.json();
-    if (data.valid && data.url) {
-      audio.src = data.url;
-      audio.play();
-      showPlaying(true);
-      loadLyrics(song.id, song.source);
-    } else {
-      alert("该歌曲暂时无法播放");
-    }
+    data = await resp.json();
   } catch (e) {
-    alert("获取播放地址失败");
+    fetchErr = true;
   }
+
+  if (fetchErr || !data || !data.valid || !data.url) {
+    // 还原"未播放"状态显示
+    nameEl.textContent = prevName;
+    artistEl.textContent = prevArtist;
+
+    var reason = fetchErr ? "网络错误" : "无版权或暂不可用";
+    if (index < playlist.length - 1) {
+      showToast("「" + song.name + "」" + reason + "，自动跳到下一首");
+      return _playSongInner(index + 1, depth + 1);
+    }
+    showToast("「" + song.name + "」" + reason);
+    return false;
+  }
+
+  // 成功路径：此时才更新 currentIndex 和"正在播放"高亮
+  currentIndex = index;
+  audio.src = data.url;
+  audio.play();
+  nameEl.textContent = song.name;
+  artistEl.textContent = song.artist;
+  if (song.cover) document.getElementById("nowCover").src = song.cover;
+
+  renderList(playlist);
+  showPlaying(true);
+  loadLyrics(song.id, song.source);
+  return true;
+}
+
+async function playSong(index) {
+  return _playSongInner(index, 0);
 }
 
 function togglePlay() {
@@ -475,6 +521,25 @@ function highlightLyric(currentTime) {
   if (activeEl) activeEl.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
+// --- Toast（替代 alert） ---
+var _toastEl = null;
+var _toastTimer = null;
+function showToast(message, duration) {
+  if (!_toastEl) {
+    _toastEl = document.createElement("div");
+    _toastEl.className = "toast";
+    document.body.appendChild(_toastEl);
+  }
+  _toastEl.textContent = message;
+  // 强制 reflow 让动画从初始态开始
+  void _toastEl.offsetWidth;
+  _toastEl.classList.add("show");
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function() {
+    _toastEl.classList.remove("show");
+  }, duration || 2500);
+}
+
 // --- 工具 ---
 function formatTime(sec) {
   if (!sec || sec < 0) return "0:00";
@@ -546,11 +611,12 @@ window.nativeCommand = function(command, param) {
     }
   });
 
-  // 覆写 playSong，在播放时通知 Native 元数据
+  // 覆写 playSong，仅在真正切歌成功（currentIndex 改变）时通知 Native
   var _originalPlaySong = playSong;
   playSong = async function(index) {
-    await _originalPlaySong(index);
-    if (hasNative && currentIndex >= 0 && currentIndex < playlist.length) {
+    var prev = currentIndex;
+    var ok = await _originalPlaySong(index);
+    if (hasNative && ok && currentIndex !== prev && currentIndex >= 0 && currentIndex < playlist.length) {
       var song = playlist[currentIndex];
       window.CarMusic.updateNowPlaying(
         song.name || "",
@@ -559,6 +625,7 @@ window.nativeCommand = function(command, param) {
         (song.duration || 0) * 1000
       );
     }
+    return ok;
   };
 })();
 </script>
