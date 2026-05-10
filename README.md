@@ -54,19 +54,14 @@ gradle assembleDebug
 本仓库已内置 GitHub Actions 工作流 `.github/workflows/build.yml`：
 
 - 任意分支 push / PR → 自动编译 Debug APK，作为 Actions artifact 下载
-- 推送 `v*` tag（如 `v1.0.0`）→ 自动编译并创建 GitHub Release，附带 APK
-- **手动触发（推荐）**：在 GitHub 仓库 → Actions → `Build APK` → `Run workflow`，
-  在 `release_version` 中填写版本号（如 `v1.0.0`），workflow 会自动创建 tag
-  并发布 Release；留空则仅生成 artifact。
+- **`VERSION` 文件驱动发布**：仓库根目录的 `VERSION` 文件非空时，CI 会以
+  其内容为版本号（如 `v1.0.0`）创建 tag 并发布带 APK 的 GitHub Release。
+  发布过 tag 后会自动跳过，重复 push 不会重发。
+- **手动触发**：仓库 → Actions → `Build APK` → `Run workflow`，
+  在 `release_version` 填版本号即可；留空只生成 artifact。
 
-命令行发布（需有 push 权限）：
-
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-随后在仓库的 Releases 页面即可下载 `car-music-v1.0.0-debug.apk`。
+发布新版本：编辑 `VERSION` → push。Release 名取自 `VERSION` 文件内容；
+若已发布过同 tag，CI 自动跳过 Release 步骤。
 
 ## 安装到车机
 
