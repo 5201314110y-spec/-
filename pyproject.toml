@@ -1,0 +1,15 @@
+[tool.flet]
+app_name = "镍电解工备考系统"
+description = "镍电解工理论题库智能备考 App"
+org = "com.nickel.exam"
+product = "NickelExam"
+# 打包入口
+module = "main"
+
+[tool.flet.android]
+# Android 最低 API 版本
+min_sdk_version = 21
+
+[tool.flet.permissions]
+# Android 读取外部存储（用于加载题库文件）
+android = ["READ_EXTERNAL_STORAGE", "WRITE_EXTERNAL_STORAGE"]
